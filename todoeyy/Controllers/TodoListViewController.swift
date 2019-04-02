@@ -7,18 +7,18 @@
 //
 
 import UIKit
-
+import CoreData
 class TodoListViewController: UITableViewController {
 var item=[Item]()
-let datafilePath=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask).first?.appendingPathComponent("Items.plist")
-    //let datafilePath1=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask).first
 
+let datafilePath1=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask).first
+let context=(UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     override func viewDidLoad() {
         super.viewDidLoad()
-       // print(datafilePath1)
+       
+        print(datafilePath1)
         
-        
-        loadItems()
+        //loadItems()
         // Do any additional setup after loading the view, typically from a nib.
     }
 
@@ -70,8 +70,10 @@ let datafilePath=FileManager.default.urls(for:.documentDirectory,in:.userDomainM
           var nItem=UITextField()
         let alert=UIAlertController(title: "add new", message: "", preferredStyle: .alert)
         let action=UIAlertAction(title: "add item", style: .default) { (action) in
-            let newItem=Item()
+            
+            let newItem=Item(context: self.context)
             newItem.title=nItem.text!
+            newItem.done=false
             
             self.item.append(newItem)
             self.saveItems()
@@ -81,6 +83,7 @@ let datafilePath=FileManager.default.urls(for:.documentDirectory,in:.userDomainM
             alertTextField.placeholder="create"
             nItem=alertTextField
             
+            
         }
         alert.addAction(action)
         present(alert,animated: true,completion: nil)
@@ -88,10 +91,9 @@ let datafilePath=FileManager.default.urls(for:.documentDirectory,in:.userDomainM
     
    func saveItems()
    {
-    let encoder=PropertyListEncoder()
+    
     do{
-        let data=try encoder.encode(item)
-        try data.write(to:datafilePath!)
+     try context.save()
     }
     catch{
         print(error)
@@ -100,18 +102,18 @@ let datafilePath=FileManager.default.urls(for:.documentDirectory,in:.userDomainM
      self.tableView.reloadData()
     }
     
-    func loadItems()
-    {
-        if let data=try? Data(contentsOf: datafilePath!)
-        {
-            let decoder=PropertyListDecoder()
-            do{
-            item=try decoder.decode([Item].self, from: data)
-            }
-            catch{
-                print(error)
-            }
-        }
-    }
+//    func loadItems()
+//    {
+//        if let data=try? Data(contentsOf: datafilePath!)
+//        {
+//
+//            do{
+//
+//            }
+//            catch{
+//                print(error)
+//            }
+//        }
+//    }
 }
 
