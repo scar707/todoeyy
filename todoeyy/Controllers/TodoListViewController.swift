@@ -10,15 +10,21 @@ import UIKit
 import CoreData
 class TodoListViewController: UITableViewController {
 var item=[Item]()
+    var selectedCategory:Category?{
+        didSet{
+           
+            loadItems()
+        }
+    }
 
-let datafilePath1=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask).first
+//let datafilePath1=FileManager.default.urls(for:.documentDirectory,in:.userDomainMask).first
 let context=(UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     override func viewDidLoad() {
         super.viewDidLoad()
-       
-        print(datafilePath1)
         
-        //loadItems()
+       // print(datafilePath1)
+        
+       
         // Do any additional setup after loading the view, typically from a nib.
     }
 
@@ -44,19 +50,12 @@ let context=(UIApplication.shared.delegate as! AppDelegate).persistentContainer.
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
+        item[indexPath.row].done = !item[indexPath.row].done
         
-        if item[indexPath.row].done==true
-        {
-            item[indexPath.row].done=false
-
-            tableView.cellForRow(at: indexPath)?.accessoryType  = .none
-            saveItems()
-        }
-        else{
-            item[indexPath.row].done=true
-            tableView.cellForRow(at: indexPath)?.accessoryType  = .checkmark
-            saveItems()
-        }
+//        context.delete(item[indexPath.row])
+//        item.remove(at: indexPath.row)
+        saveItems()
+       
         
         
       
@@ -74,7 +73,7 @@ let context=(UIApplication.shared.delegate as! AppDelegate).persistentContainer.
             let newItem=Item(context: self.context)
             newItem.title=nItem.text!
             newItem.done=false
-            
+            newItem.parentCategory=self.selectedCategory
             self.item.append(newItem)
             self.saveItems()
            
@@ -102,18 +101,57 @@ let context=(UIApplication.shared.delegate as! AppDelegate).persistentContainer.
      self.tableView.reloadData()
     }
     
-//    func loadItems()
-//    {
-//        if let data=try? Data(contentsOf: datafilePath!)
-//        {
-//
-//            do{
-//
-//            }
-//            catch{
-//                print(error)
-//            }
-//        }
-//    }
-}
+    func loadItems(with request:NSFetchRequest<Item>=Item.fetchRequest(),predicate:NSPredicate?=nil)
+    {
+        let cPredicate=NSPredicate(format: "parentCategory.name MATCHES %@",selectedCategory!.name!)
+        //let request:NSFetchRequest<Item>=Item.fetchRequest()
+        
+        if let additionalPredicate=predicate{
+             request.predicate=NSCompoundPredicate(andPredicateWithSubpredicates: [cPredicate,additionalPredicate])
+        }
+        else{
+          request.predicate=cPredicate
+        }
+       
+        
 
+        do
+        {
+            item=try context.fetch(request)
+            tableView.reloadData()
+    }
+        catch
+        {
+            print(error)
+        }
+    }
+    
+    
+}
+//MARK - Search bar methods
+extension TodoListViewController:UISearchBarDelegate
+{
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        let request:NSFetchRequest<Item>=Item.fetchRequest()
+        let predicate=NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+       
+        request.sortDescriptors=[NSSortDescriptor(key: "title", ascending: true)]
+        
+        
+        loadItems(with: request,predicate: predicate)
+        
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count==0
+        {
+            loadItems()
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
+            }
+            
+        }
+    }
+    
+  
+}
